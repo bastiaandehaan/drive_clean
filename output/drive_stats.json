@@ -1,0 +1,300 @@
+{
+  "total_files": 43675,
+  "total_folders": 2242,
+  "total_size_bytes": 88656046563,
+  "total_size_readable": "82.57 GB",
+  "max_folder_depth": 16,
+  "root_folders_count": 4,
+  "orphan_folders_count": 16,
+  "file_types": {
+    "text/html": 1155,
+    "text/plain": 30,
+    "image/jpeg": 35166,
+    "image/png": 1206,
+    "video/mp4": 2370,
+    "image/gif": 110,
+    "audio/x-hx-aac-adts": 14,
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": 16,
+    "audio/mp4": 4,
+    "application/pdf": 63,
+    "audio/mpeg": 68,
+    "application/msword": 22,
+    "image/svg+xml": 1,
+    "application/zip": 14,
+    "video/quicktime": 3,
+    "video/3gpp": 40,
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": 12,
+    "application/vnd.google-makersuite.prompt": 1,
+    "application/x-ipynb+json": 1,
+    "text/markdown": 1,
+    "application/vnd.google-apps.spreadsheet": 23,
+    "application/vnd.google-apps.document": 13,
+    "application/vnd.google.colaboratory": 7,
+    "image/webp": 15,
+    "text/csv": 7,
+    "text/xml": 5,
+    "application/vnd.google-apps.shortcut": 3,
+    "audio/ogg": 9,
+    "application/octet-stream": 2273,
+    "video/mkv": 30,
+    "application/vnd.novalauncher.backup": 2,
+    "application/x-zip-compressed": 5,
+    "application/x-zip": 5,
+    "text/x-objcsrc": 59,
+    "application/ogg": 810,
+    "application/x-gzip": 64,
+    "image/x-portable-bitmap": 1,
+    "application/pgp-encrypted": 2,
+    "audio/mp4a-latm": 1,
+    "text/x-vcalendar": 1,
+    "message/rfc822": 1,
+    "application/java-serialized-object": 1,
+    "application/x-iwork-numbers-sffnumbers": 1,
+    "application/vnd.google-apps.map": 5,
+    "application/vnd.android.package-archive": 1,
+    "application/x-msdownload": 1,
+    "application/x-compressed-tar": 29,
+    "application/x-rar": 1,
+    "application/rar": 1,
+    "video/x-ms-asf": 1,
+    "application/vnd.google-apps.form": 1
+  },
+  "categories": {
+    "Code": 1155,
+    "Documents": 153,
+    "Photos": 36499,
+    "Videos": 2446,
+    "Audio": 95,
+    "Archives": 121,
+    "Other": 3176,
+    "Spreadsheets": 30
+  },
+  "duplicate_count": 3013,
+  "exact_duplicate_count": 1283,
+  "old_files_count": 38993,
+  "unused_files_count": 7014,
+  "crowded_folders": [
+    {
+      "name": "Google Photo's",
+      "files_count": 30092,
+      "id": "1bq6Ek-Q6MQNEHmrJZXCjBSrCr6pP4ZRN"
+    },
+    {
+      "name": "SD Card",
+      "files_count": 2533,
+      "id": "1-niIn1Voh6USoZ5CeWBty-K0flo-gSFl"
+    },
+    {
+      "name": "WhatsApp Images",
+      "files_count": 1689,
+      "id": "1omjN2D5iCll-FxZOpCPxtbUz2LZwp2q6"
+    },
+    {
+      "name": "Videos",
+      "files_count": 1418,
+      "id": "1-9q4wiXziu-aWuzlQe1xlcDf2oNV5aar"
+    },
+    {
+      "name": "WhatsApp Video",
+      "files_count": 421,
+      "id": "1m8VJyjHMErzkgTpfsOVxzI34_vxsTQKN"
+    },
+    {
+      "name": "Sent",
+      "files_count": 286,
+      "id": "1U7mm0nydL9WFmsglhTjESEhRgq6LI33A"
+    },
+    {
+      "name": "07",
+      "files_count": 192,
+      "id": "11Gjtc7RbIbAJmItosZMVYIB5b997G-He"
+    },
+    {
+      "name": "WhatsApp Images",
+      "files_count": 159,
+      "id": "1yDF3IWwDOokGoTrq6DiSu6QaeFmqqKDS"
+    },
+    {
+      "name": "2",
+      "files_count": 158,
+      "id": "1ILtR5CDesfs_yvX_OcUq1Ms5BOj3vJfh"
+    },
+    {
+      "name": "8",
+      "files_count": 157,
+      "id": "1mH0EojNdtZgbKNiDn1rmTeWfys-3loA0"
+    },
+    {
+      "name": "9",
+      "files_count": 153,
+      "id": "1Tia3PfPLIJKSIl50acAxRtOVFU0_UkUq"
+    },
+    {
+      "name": "5",
+      "files_count": 152,
+      "id": "1B_ACWVEf34a3jeXo9BnW2fgR8EdSzzz6"
+    },
+    {
+      "name": "0",
+      "files_count": 151,
+      "id": "18cmQ3EgsLS3hFmeRZY6sgCk7D4jeR_pF"
+    },
+    {
+      "name": "7",
+      "files_count": 148,
+      "id": "1_wBCY_-xrJrB4G1zSlxIRr4hCwbF34jZ"
+    },
+    {
+      "name": "6",
+      "files_count": 145,
+      "id": "1YBIx_a_7HXrQafd4co00KpUw5znE2Apl"
+    },
+    {
+      "name": "3",
+      "files_count": 139,
+      "id": "1R96WdXzbRneFal9K3rAeQZdcpI3yMPoj"
+    },
+    {
+      "name": "Tijdlijnfotos_SqjHIjPgPg",
+      "files_count": 138,
+      "id": "1rPwRXQvYXj1HTyc9EZWb3QkZUddUQpJW"
+    },
+    {
+      "name": "4",
+      "files_count": 135,
+      "id": "1pzeEHiVjsCrm_xkQJa1-pHw5KgPNqymV"
+    },
+    {
+      "name": "1",
+      "files_count": 135,
+      "id": "1PD0NZoR81pfig0jAVfnrf1u1gcVd7UuV"
+    },
+    {
+      "name": "stickers_used",
+      "files_count": 133,
+      "id": "1dSJAHu3-FQ0Fa50APnzY6dtWzCGt7oU1"
+    }
+  ],
+  "largest_files": [
+    {
+      "name": "20170515_085309.mp4",
+      "size_bytes": 2328404991,
+      "size_readable": "2.17 GB",
+      "id": "1lvmVs8t1YCvHtnoONgvoBrHSulwm2JyF4w"
+    },
+    {
+      "name": "20190525_202825.mp4",
+      "size_bytes": 1468568961,
+      "size_readable": "1.37 GB",
+      "id": "1U86HXimACSEMHuts0OY28mvlMmh0JBnhYA"
+    },
+    {
+      "name": "20190627_192800.mp4",
+      "size_bytes": 1413535357,
+      "size_readable": "1.32 GB",
+      "id": "1_wn5kASfSNy4Igv7q_8jwWYMx71aJ64koQ"
+    },
+    {
+      "name": "20170515_083000.mp4",
+      "size_bytes": 1266200371,
+      "size_readable": "1.18 GB",
+      "id": "1Ca-wOpnrRhx9WjmywfQJDHMlE_VNptKKog"
+    },
+    {
+      "name": "20190605_134055.mp4",
+      "size_bytes": 804271687,
+      "size_readable": "767.01 MB",
+      "id": "16Rj063mZ45HI2b7oLkNM3Ein3Vm9e7AFhA"
+    },
+    {
+      "name": "20190627_193452.mp4",
+      "size_bytes": 766262636,
+      "size_readable": "730.76 MB",
+      "id": "1cE2arpQ3561reJHYZ2hCRhViZAX7GxzXWA"
+    },
+    {
+      "name": "20190226_140405.mp4",
+      "size_bytes": 683293599,
+      "size_readable": "651.64 MB",
+      "id": "1Tl7tdKxkoTUthvhci7gdv9I4ia7NJ0HWRw"
+    },
+    {
+      "name": "20190605_133458.mp4",
+      "size_bytes": 631377406,
+      "size_readable": "602.13 MB",
+      "id": "1nAX266CR4mmr2X9qRI_SqdJWn4jkQJeFfQ"
+    },
+    {
+      "name": "VID_20160330_115330.mp4",
+      "size_bytes": 622001520,
+      "size_readable": "593.19 MB",
+      "id": "1Vr_h9VbkOn0emi3qV2gqDXu8d3x9NEs5qQ"
+    },
+    {
+      "name": "VTS_01_0.mkv",
+      "size_bytes": 616279575,
+      "size_readable": "587.73 MB",
+      "id": "1dkh11uUm80wJ2csc_rnuldyUJry_IHvy0Q"
+    },
+    {
+      "name": "lineage-16.0-20191203-UNOFFICIAL-hero2lte.zip",
+      "size_bytes": 579645078,
+      "size_readable": "552.79 MB",
+      "id": "1uKkHWxlNu2PuYx8Go1howV72sUCgUbXh"
+    },
+    {
+      "name": "lineage-17.1-20200122-UNOFFICIAL-herolte.zip",
+      "size_bytes": 564561017,
+      "size_readable": "538.41 MB",
+      "id": "1m2UhPeeH3w1GgSIFpmW0gLTnNv-2sd8E"
+    },
+    {
+      "name": "lineage-17.1-20200122-UNOFFICIAL-hero2lte.zip",
+      "size_bytes": 564521692,
+      "size_readable": "538.37 MB",
+      "id": "1VxnKRZwWQol7-1oj0grnsSVamilLJavL"
+    },
+    {
+      "name": "lineage-16.0-20190910-UNOFFICIAL-hero2lte.zip",
+      "size_bytes": 557816057,
+      "size_readable": "531.97 MB",
+      "id": "1QWgGi7Pie6UVNrrpKainXDpvuNIfYjJ_"
+    },
+    {
+      "name": "lineage-17.0-20191105-UNOFFICIAL-hero2lte.zip",
+      "size_bytes": 550134192,
+      "size_readable": "524.65 MB",
+      "id": "14EvYZ107M0CDsmmx2k0lK1MdjqUE6rUq"
+    },
+    {
+      "name": "lineage-15.1-20181130-UNOFFICIAL-hero2lte_signed.zip",
+      "size_bytes": 501316338,
+      "size_readable": "478.09 MB",
+      "id": "1TlOzOmiFLLhiWp4L6jBHwXXBRbFJCOhR"
+    },
+    {
+      "name": "lineage-15.1-20191203-UNOFFICIAL-hero2lte.zip",
+      "size_bytes": 487603748,
+      "size_readable": "465.02 MB",
+      "id": "1vX9eFDsInH0EOeXsgCE973cxi0fdfmAk"
+    },
+    {
+      "name": "20190625_185615.mp4",
+      "size_bytes": 383433191,
+      "size_readable": "365.67 MB",
+      "id": "1P52RNqNdbIbdiS73MKot-3LvwVg-gOi1"
+    },
+    {
+      "name": "20190625_185615.mp4",
+      "size_bytes": 383433191,
+      "size_readable": "365.67 MB",
+      "id": "1C2_WueWyKIM1R2wNkba3xGqwdqx5yTqzYA"
+    },
+    {
+      "name": "20190305_101850.mp4",
+      "size_bytes": 323027868,
+      "size_readable": "308.06 MB",
+      "id": "1E1Y3q5waOrU-QI4jWgNRbgu7wSGmJtFdQw"
+    }
+  ]
+}

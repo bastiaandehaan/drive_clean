@@ -1,0 +1,34 @@
+Google Drive Verbeteringsuggesties - Gegenereerd op 2025-05-17 13:57:58
+
+1. Er zijn 720 lege mappen. Overweeg deze te verwijderen of te gebruiken voor organisatie van losse bestanden.
+
+2. Er zijn 24 mappen met meer dan 100 directe bestanden. Overweeg deze bestanden in submappen te organiseren voor betere structuur.
+
+3.   - 'Google Photo's' bevat 30092 bestanden
+
+4.   - 'SD Card' bevat 2533 bestanden
+
+5.   - 'WhatsApp Images' bevat 1689 bestanden
+
+6.   - 'Videos' bevat 1418 bestanden
+
+7.   - 'WhatsApp Video' bevat 421 bestanden
+
+8. Er zijn 3013 unieke bestandsnamen met potentiële duplicaten (6968 bestanden totaal). Zie output\potential_duplicates.csv voor details.
+
+9. Er zijn 1283 sets exacte duplicaten gevonden. Verwijderen bespaart 6.07 GB. Zie output\exact_duplicates.csv voor details.
+
+10. Er zijn 38993 bestanden ouder dan 1 jaar gevonden. Overweeg deze te archiveren of te verwijderen. Zie output\old_files.csv voor details.
+
+11. Er zijn mapnamen met gemeenschappelijke voorvoegsels. Overweeg naming conventions te standaardiseren voor betere organisatie:
+
+12.   - 'photos' komt voor in 111 mapnamen
+
+13.   - 'LC_MESSAGES' komt voor in 39 mapnamen
+
+14.   - 'files' komt voor in 33 mapnamen
+
+15.   - 'audio' komt voor in 25 mapnamen
+
+16.   - 'videos' komt voor in 22 mapnamen
+

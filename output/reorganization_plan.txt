@@ -1,0 +1,48 @@
+Google Drive Reorganisatie Plan - Gegenereerd op 2025-05-17 13:57:58
+
+## 1. VOORGESTELDE MAPSTRUCTUUR
+
+```
+Drive Root/
+├── Documents/ (153 bestanden)
+│   ├── Persoonlijk/
+│   ├── Werk/
+│   └── Archief/
+├── Photos/ (36499 bestanden)
+│   ├── Persoonlijk/
+│   ├── Werk/
+│   └── Evenementen/
+├── Videos/ (2446 bestanden)
+│   ├── Persoonlijk/
+│   └── Werk/
+├── Spreadsheets/ (30 bestanden)
+├── Archives/ (121 bestanden)
+├── Code/ (1155 bestanden)
+└── Other/ (3176 bestanden)
+```
+
+## 2. DUPLICATEN OPRUIMEN
+
+Er zijn 1283 sets exacte duplicaten gevonden.
+- Potentiële ruimtebesparing: 6.07 GB
+- Zie exact_duplicates.csv voor details
+
+## 3. OUDE BESTANDEN BEOORDELEN
+
+Er zijn 38993 bestanden ouder dan 1 jaar gevonden.
+- Overweeg deze te archiveren of te verwijderen
+- Zie output\old_files.csv voor details
+
+## 4. ONGEBRUIKTE BESTANDEN
+
+Er zijn 7014 potentieel ongebruikte bestanden.
+- Beoordeel deze bestanden om te bepalen of ze bewaard moeten worden
+- Zie unused_files.csv voor details
+
+## 5. STAPSGEWIJS OPRUIMPLAN
+
+1. Begin met het verwijderen van duidelijke duplicaten
+2. Creëer de hoofdcategorieën als ze nog niet bestaan
+3. Verplaats bestanden systematisch naar de juiste categorieën
+4. Organiseer bestanden binnen categorieën in logische submappen
+5. Beoordeel oude en ongebruikte bestanden voor archivering of verwijdering
