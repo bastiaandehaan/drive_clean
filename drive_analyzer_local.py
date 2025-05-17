@@ -1,22 +1,27 @@
 import json
 from pathlib import Path
 import os
+import re
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 from typing import Dict, List, Set, Tuple, Optional, Any
 
 # Configuratie
 INPUT_FILE = Path("output/drive_index.json")
 OUTPUT_DIR = Path("output")
-FOLDERS_OUTPUT = OUTPUT_DIR / "drive_folders.json"
 STRUCTURE_OUTPUT = OUTPUT_DIR / "drive_structure.txt"
 STATS_OUTPUT = OUTPUT_DIR / "drive_stats.json"
 DUPLICATE_OUTPUT = OUTPUT_DIR / "potential_duplicates.csv"
+EXACT_DUPES_OUTPUT = OUTPUT_DIR / "exact_duplicates.csv"
+OLD_FILES_OUTPUT = OUTPUT_DIR / "old_files.csv"
+UNUSED_FILES_OUTPUT = OUTPUT_DIR / "unused_files.csv"
+CATEGORIES_OUTPUT = OUTPUT_DIR / "categorized_files.json"
+REORG_PLAN_OUTPUT = OUTPUT_DIR / "reorganization_plan.txt"
 SUGGESTIONS_OUTPUT = OUTPUT_DIR / "improvement_suggestions.txt"
 VISUALIZATION_OUTPUT = OUTPUT_DIR / "folder_tree.html"
 
-# Maak output directory als deze niet bestaat
+# Maak output directory
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 
@@ -32,7 +37,22 @@ class DriveAnalyzer:
         self.file_types = defaultdict(int)
         self.largest_files = []
         self.potential_duplicates = []
+        self.exact_duplicates = []
+        self.old_files = []
+        self.unused_files = []
+        self.categories = {}
         self.loaded = False
+
+        # Categorisatiepatronen
+        self.category_patterns = {
+            'Photos': [r'\.(jpg|jpeg|png|gif|bmp|heic)$', r'image/'],
+            'Documents': [r'\.(pdf|doc|docx|txt|rtf|odt)$', r'document', r'text/plain'],
+            'Spreadsheets': [r'\.(xls|xlsx|csv|ods)$', r'spreadsheet', r'text/csv'],
+            'Presentations': [r'\.(ppt|pptx|key)$', r'presentation'],
+            'Videos': [r'\.(mp4|mov|avi|mkv|3gpp)$', r'video/'],
+            'Audio': [r'\.(mp3|wav|ogg|m4a)$', r'audio/'],
+            'Archives': [r'\.(zip|rar|gz|7z|tar)$', r'application/.*zip'],
+            'Code': [r'\.(py|java|js|html|css|php)$', r'text/.*script'], }
 
     def load_data(self) -> None:
         """Laad de JSON-data en initialiseer de basisstructuren"""
@@ -62,8 +82,8 @@ class DriveAnalyzer:
                 folder = self.folder_map[folder_id]
                 if not folder.get('parents'):
                     self.root_folders.append(folder)
-                elif not any(
-                        parent in self.folder_map for parent in folder.get('parents', [])):
+                elif not any(parent in self.folder_map for parent in
+                             folder.get('parents', [])):
                     self.orphan_folders.append(folder)
 
             # Categoriseer bestandstypes
@@ -74,7 +94,6 @@ class DriveAnalyzer:
             # Sorteer grootste bestanden
             non_folders = [f for f in self.files if f.get(
                 'mimeType') != 'application/vnd.google-apps.folder' and 'size' in f]
-            # Converteer size naar int als het bestaat
             for f in non_folders:
                 if 'size' in f:
                     try:
@@ -110,7 +129,7 @@ class DriveAnalyzer:
         if not parents:
             return f"/{folder['name']}"
 
-        # Neem de eerste parent (Drive kan meerdere parents hebben, maar we focussen op de eerste)
+        # Neem de eerste parent
         parent_id = parents[0]
         parent_path = self.get_folder_path(parent_id, visited)
 
@@ -136,7 +155,6 @@ class DriveAnalyzer:
                 indent = "  " * depth
                 file.write(f"{indent}- {folder['name']} (ID: {folder_id})\n")
 
-                # Print alleen mappen (folders) als children, niet alle bestanden
                 children = [item for item in self.children_map[folder_id] if item.get(
                     'mimeType') == 'application/vnd.google-apps.folder']
 
@@ -148,7 +166,7 @@ class DriveAnalyzer:
             for folder in sorted(self.root_folders, key=lambda x: x['name']):
                 print_folder_tree(folder['id'])
 
-            # Print orphan folders als die er zijn
+            # Print orphan folders
             if self.orphan_folders:
                 f.write("\nWezen mappen (geen geldige parent):\n")
                 for folder in sorted(self.orphan_folders, key=lambda x: x['name']):
@@ -191,13 +209,308 @@ class DriveAnalyzer:
 
                 writer.writerow(
                     [name, len(files), ', '.join(file_ids), ' | '.join(paths)])
-
-                # Bewaar voor later gebruik
                 self.potential_duplicates.append(
                     {'name': name, 'count': len(files), 'files': files})
 
         print(
             f"Gevonden: {len(duplicates)} potentiële duplicaten, opgeslagen in {DUPLICATE_OUTPUT}")
+
+    def find_exact_duplicates(self) -> None:
+        """Identificeer exacte duplicaten op basis van naam én grootte"""
+        if not self.loaded:
+            self.load_data()
+
+        print("Zoeken naar exacte duplicaten...")
+
+        # Groepeer op naam en grootte
+        name_size_groups = defaultdict(list)
+        for file in self.files:
+            if file.get(
+                    'mimeType') != 'application/vnd.google-apps.folder' and 'size' in file:
+                key = (file['name'], int(file['size']))
+                name_size_groups[key].append(file)
+
+        # Filter groepen met meer dan 1 bestand
+        exact_dupes = []
+        for (name, size), files in name_size_groups.items():
+            if len(files) > 1:
+                exact_dupes.append(
+                    {'name': name, 'size': size, 'files': files, 'count': len(files)})
+
+        self.exact_duplicates = sorted(exact_dupes, key=lambda x: x['size'],
+                                       reverse=True)
+
+        # Schrijf naar CSV
+        with open(EXACT_DUPES_OUTPUT, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['Bestandsnaam', 'Grootte', 'Aantal kopieën', 'Paden'])
+
+            for dupe in self.exact_duplicates:
+                paths = []
+                for file in dupe['files']:
+                    if 'parents' in file and file['parents']:
+                        parent_id = file['parents'][0]
+                        paths.append(self.get_folder_path(parent_id))
+                    else:
+                        paths.append("(geen parent)")
+
+                writer.writerow(
+                    [dupe['name'], self._bytes_to_readable(dupe['size']), dupe['count'],
+                        ' | '.join(paths)])
+
+        print(
+            f"Gevonden: {len(self.exact_duplicates)} exacte duplicaten, opgeslagen in {EXACT_DUPES_OUTPUT}")
+
+    def find_old_files(self, days_threshold=365) -> None:
+        """Identificeer bestanden die ouder zijn dan de gegeven drempel"""
+        if not self.loaded:
+            self.load_data()
+
+        print(f"Zoeken naar bestanden ouder dan {days_threshold} dagen...")
+
+        # Fix: zorg dat beide datetimes timezone-aware zijn, of beide naive
+        now = datetime.now()  # Offset-naive
+        threshold_date = now - timedelta(days=days_threshold)
+        old_files = []
+
+        for file in self.files:
+            if file.get('mimeType') == 'application/vnd.google-apps.folder':
+                continue
+
+            if 'createdTime' in file:
+                # Maak created_date ook naive door de timezone info weg te halen
+                created_time = file['createdTime'].replace('Z', '')
+                created_date = datetime.fromisoformat(created_time)
+
+                if created_date < threshold_date:
+                    file_path = "/"
+                    if 'parents' in file and file['parents']:
+                        parent_id = file['parents'][0]
+                        file_path = self.get_folder_path(parent_id)
+
+                    old_files.append(
+                        {'id': file['id'], 'name': file['name'], 'path': file_path,
+                            'created': created_date,
+                            'age_days': (now - created_date).days,
+                            'size': int(file.get('size', 0)) if 'size' in file else 0})
+
+        self.old_files = sorted(old_files, key=lambda x: x['age_days'], reverse=True)
+
+        # Schrijf naar CSV
+        with open(OLD_FILES_OUTPUT, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(
+                ['Bestandsnaam', 'Leeftijd (dagen)', 'Aanmaakdatum', 'Grootte', 'Pad'])
+
+            for file in self.old_files:
+                writer.writerow([file['name'], file['age_days'],
+                    file['created'].strftime('%Y-%m-%d'),
+                    self._bytes_to_readable(file['size']), file['path']])
+
+        print(
+            f"Gevonden: {len(self.old_files)} oude bestanden, opgeslagen in {OLD_FILES_OUTPUT}")
+
+    def find_unused_files(self) -> None:
+        """Identificeer potentieel ongebruikte bestanden op basis van leeftijd, locatie en naampatronen"""
+        if not self.loaded:
+            self.load_data()
+
+        print("Zoeken naar ongebruikte bestanden...")
+
+        # Patronen die wijzen op tijdelijke of backup bestanden
+        backup_patterns = [r'temp', r'tmp', r'cache', r'backup', r'bak', r'old',
+            r'copy.*of', r'\(\d+\)', r'_\d{8}', r'\d{4}-\d{2}-\d{2}']
+        compiled_patterns = [re.compile(pattern, re.IGNORECASE) for pattern in
+                             backup_patterns]
+
+        # Zoek ongebruikte bestanden
+        unused_files = []
+        # Gebruik dezelfde timezone-aware strategie als in find_old_files
+        now = datetime.now()
+
+        for file in self.files:
+            if file.get('mimeType') == 'application/vnd.google-apps.folder':
+                continue
+
+            score = 0
+            reasons = []
+            path = "/"
+
+            # 1. Check leeftijd
+            if 'createdTime' in file:
+                # Maak created_date ook naive door de timezone info weg te halen
+                created_time = file['createdTime'].replace('Z', '')
+                created_date = datetime.fromisoformat(created_time)
+                age_days = (now - created_date).days
+
+                # Verhoogde drempels voor leeftijd
+                if age_days > 1095:  # 3 jaar
+                    score += 2
+                    reasons.append(f"Zeer oud ({age_days} dagen)")
+                elif age_days > 730:  # 2 jaar
+                    score += 1
+                    reasons.append(f"Oud ({age_days} dagen)")
+
+            # 2. Check mapdiepte
+            if 'parents' in file and file['parents']:
+                parent_id = file['parents'][0]
+                path = self.get_folder_path(parent_id)
+                depth = path.count('/')
+
+                if depth > 7:  # Verhoogde drempel voor diepte
+                    score += 1
+                    reasons.append(f"Diep genest (niveau {depth})")
+
+            # 3. Check op backup/temp patronen in naam
+            for pattern in compiled_patterns:
+                if pattern.search(file['name']):
+                    score += 2
+                    reasons.append(f"Backup/temp patroon")
+                    break
+
+            # Verhoogde score threshold
+            if score >= 3:  # Was 2
+                unused_files.append(
+                    {'id': file['id'], 'name': file['name'], 'score': score,
+                        'reasons': reasons,
+                        'size': int(file.get('size', 0)) if 'size' in file else 0,
+                        'path': path})
+
+        self.unused_files = sorted(unused_files, key=lambda x: x['score'], reverse=True)
+
+        # Schrijf naar CSV
+        with open(UNUSED_FILES_OUTPUT, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['Bestandsnaam', 'Score', 'Redenen', 'Grootte', 'Pad'])
+
+            for file in self.unused_files:
+                writer.writerow(
+                    [file['name'], file['score'], ' | '.join(file['reasons']),
+                        self._bytes_to_readable(file['size']), file['path']])
+
+        print(
+            f"Gevonden: {len(self.unused_files)} potentieel ongebruikte bestanden, opgeslagen in {UNUSED_FILES_OUTPUT}")
+
+    def generate_reorganization_plan(self) -> None:
+        """Genereer een reorganisatieplan op basis van de analyse"""
+        if not hasattr(self, 'categories') or not self.categories:
+            self.categorize_files()
+
+        print("Reorganisatieplan genereren...")
+
+        with open(REORG_PLAN_OUTPUT, 'w', encoding='utf-8') as f:
+            f.write(
+                f"Google Drive Reorganisatie Plan - Gegenereerd op {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
+            # 1. Hoofdstructuur
+            f.write("## 1. VOORGESTELDE MAPSTRUCTUUR\n\n")
+            f.write("```\n")
+            f.write("Drive Root/\n")
+
+            # Voorgestelde hoofdcategorieën
+            main_categories = ['Documents', 'Photos', 'Videos', 'Spreadsheets',
+                               'Presentations', 'Music', 'Archives', 'Code']
+            for cat in main_categories:
+                if cat in self.categories and len(self.categories[cat]) > 0:
+                    file_count = len(self.categories[cat])
+                    f.write(f"├── {cat}/ ({file_count} bestanden)\n")
+
+                    # Suggesties voor submappen, afhankelijk van de categorie
+                    if cat == "Photos":
+                        f.write(
+                            "│   ├── Persoonlijk/\n│   ├── Werk/\n│   └── Evenementen/\n")
+                    elif cat == "Documents":
+                        f.write(
+                            "│   ├── Persoonlijk/\n│   ├── Werk/\n│   └── Archief/\n")
+                    elif cat == "Videos":
+                        f.write("│   ├── Persoonlijk/\n│   └── Werk/\n")
+
+            # Overige categorie
+            if "Other" in self.categories:
+                f.write(f"└── Other/ ({len(self.categories['Other'])} bestanden)\n")
+
+            f.write("```\n\n")
+
+            # 2. Duplicaten aanpak
+            f.write("## 2. DUPLICATEN OPRUIMEN\n\n")
+            if self.exact_duplicates:
+                f.write(
+                    f"Er zijn {len(self.exact_duplicates)} sets exacte duplicaten gevonden.\n")
+                f.write(
+                    f"- Potentiële ruimtebesparing: {self._bytes_to_readable(sum(d['size'] * (d['count'] - 1) for d in self.exact_duplicates))}\n")
+                f.write("- Zie exact_duplicates.csv voor details\n\n")
+
+            # 3. Oude bestanden
+            f.write("## 3. OUDE BESTANDEN BEOORDELEN\n\n")
+            if hasattr(self, 'old_files') and self.old_files:
+                f.write(
+                    f"Er zijn {len(self.old_files)} bestanden ouder dan 1 jaar gevonden.\n")
+                f.write("- Overweeg deze te archiveren of te verwijderen\n")
+                f.write(f"- Zie {OLD_FILES_OUTPUT} voor details\n\n")
+            else:
+                f.write(
+                    "Geen oude bestanden gedetecteerd of analyse is niet uitgevoerd.\n\n")
+
+            # 4. Ongebruikte bestanden
+            f.write("## 4. ONGEBRUIKTE BESTANDEN\n\n")
+            if self.unused_files:
+                f.write(
+                    f"Er zijn {len(self.unused_files)} potentieel ongebruikte bestanden.\n")
+                f.write(
+                    "- Beoordeel deze bestanden om te bepalen of ze bewaard moeten worden\n")
+                f.write("- Zie unused_files.csv voor details\n\n")
+
+            # 5. Stapsgewijs plan
+            f.write("## 5. STAPSGEWIJS OPRUIMPLAN\n\n")
+            f.write("1. Begin met het verwijderen van duidelijke duplicaten\n")
+            f.write("2. Creëer de hoofdcategorieën als ze nog niet bestaan\n")
+            f.write("3. Verplaats bestanden systematisch naar de juiste categorieën\n")
+            f.write(
+                "4. Organiseer bestanden binnen categorieën in logische submappen\n")
+            f.write(
+                "5. Beoordeel oude en ongebruikte bestanden voor archivering of verwijdering\n")
+    def categorize_files(self) -> None:
+        """Categoriseer bestanden op basis van type, extensie en naam"""
+        if not self.loaded:
+            self.load_data()
+
+        print("Bestanden categoriseren...")
+
+        categories = defaultdict(list)
+
+        for file in self.files:
+            if file.get('mimeType') == 'application/vnd.google-apps.folder':
+                continue
+
+            file_name = file.get('name', '').lower()
+            mime_type = file.get('mimeType', '').lower()
+
+            # Bepaal categorie op basis van patronen
+            categorized = False
+            for category, patterns in self.category_patterns.items():
+                for pattern in patterns:
+                    if (re.search(pattern, file_name, re.IGNORECASE) or re.search(
+                        pattern, mime_type, re.IGNORECASE)):
+                        categories[category].append(file)
+                        categorized = True
+                        break
+                if categorized:
+                    break
+
+            # Anders in 'Other' categorie
+            if not categorized:
+                categories['Other'].append(file)
+
+        self.categories = {cat: files for cat, files in categories.items()}
+
+        # Schrijf categorieën naar JSON
+        category_stats = {cat: len(files) for cat, files in self.categories.items()}
+        with open(CATEGORIES_OUTPUT, 'w', encoding='utf-8') as f:
+            json.dump(category_stats, f, indent=2)
+
+        print(f"Bestanden gecategoriseerd in {len(self.categories)} categorieën")
+        for cat, files in self.categories.items():
+            print(f"- {cat}: {len(files)} bestanden")
 
     def generate_statistics(self) -> None:
         """Genereer statistische informatie over de Drive inhoud"""
@@ -211,11 +524,8 @@ class DriveAnalyzer:
 
         # Bereken diepte van mappenstructuur
         max_depth = 0
-        paths = []
-
         for folder in self.folders:
             path = self.get_folder_path(folder['id'])
-            paths.append(path)
             depth = path.count('/')
             max_depth = max(max_depth, depth)
 
@@ -223,11 +533,16 @@ class DriveAnalyzer:
         folder_children_count = {folder_id: len(
             [f for f in self.children_map[folder_id] if
              f.get('mimeType') != 'application/vnd.google-apps.folder']) for folder_id
-                                 in self.folder_map}
+            in self.folder_map}
 
         crowded_folders = sorted(
             [(self.folder_map[fid]['name'], count, fid) for fid, count in
              folder_children_count.items()], key=lambda x: x[1], reverse=True)[:20]
+
+        # Verzamel categoriegegevens indien beschikbaar
+        category_stats = {}
+        if hasattr(self, 'categories') and self.categories:
+            category_stats = {cat: len(files) for cat, files in self.categories.items()}
 
         # Sla statistieken op
         stats = {'total_files': len(self.files) - len(self.folders),
@@ -235,7 +550,11 @@ class DriveAnalyzer:
             'total_size_readable': self._bytes_to_readable(total_size),
             'max_folder_depth': max_depth, 'root_folders_count': len(self.root_folders),
             'orphan_folders_count': len(self.orphan_folders),
-            'file_types': self.file_types,
+            'file_types': self.file_types, 'categories': category_stats,
+            'duplicate_count': len(self.potential_duplicates),
+            'exact_duplicate_count': len(self.exact_duplicates),
+            'old_files_count': len(self.old_files),
+            'unused_files_count': len(self.unused_files),
             'crowded_folders': [{'name': name, 'files_count': count, 'id': fid} for
                                 name, count, fid in crowded_folders], 'largest_files': [
                 {'name': f['name'], 'size_bytes': f.get('size', 0),
@@ -247,15 +566,89 @@ class DriveAnalyzer:
 
         print(f"Statistieken opgeslagen in {STATS_OUTPUT}")
 
-        # Geef een korte samenvatting
+        # Korte samenvatting
         print("\nSamenvatting statistieken:")
-        print(f"- Totaal aantal bestanden: {stats['total_files']}")
-        print(f"- Totaal aantal mappen: {stats['total_folders']}")
+        print(f"- Totaal bestanden: {stats['total_files']}")
+        print(f"- Totaal mappen: {stats['total_folders']}")
         print(f"- Totale grootte: {stats['total_size_readable']}")
         print(f"- Maximale mapdiepte: {stats['max_folder_depth']}")
-        print(f"- Aantal root mappen: {stats['root_folders_count']}")
-        if stats['orphan_folders_count'] > 0:
-            print(f"- Wezen mappen: {stats['orphan_folders_count']}")
+
+    def generate_reorganization_plan(self) -> None:
+        """Genereer een reorganisatieplan op basis van de analyse"""
+        if not hasattr(self, 'categories') or not self.categories:
+            self.categorize_files()
+
+        print("Reorganisatieplan genereren...")
+
+        with open(REORG_PLAN_OUTPUT, 'w', encoding='utf-8') as f:
+            f.write(
+                f"Google Drive Reorganisatie Plan - Gegenereerd op {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
+            # 1. Hoofdstructuur
+            f.write("## 1. VOORGESTELDE MAPSTRUCTUUR\n\n")
+            f.write("```\n")
+            f.write("Drive Root/\n")
+
+            # Voorgestelde hoofdcategorieën
+            main_categories = ['Documents', 'Photos', 'Videos', 'Spreadsheets',
+                               'Presentations', 'Music', 'Archives', 'Code']
+            for cat in main_categories:
+                if cat in self.categories and len(self.categories[cat]) > 0:
+                    file_count = len(self.categories[cat])
+                    f.write(f"├── {cat}/ ({file_count} bestanden)\n")
+
+                    # Suggesties voor submappen, afhankelijk van de categorie
+                    if cat == "Photos":
+                        f.write(
+                            "│   ├── Persoonlijk/\n│   ├── Werk/\n│   └── Evenementen/\n")
+                    elif cat == "Documents":
+                        f.write(
+                            "│   ├── Persoonlijk/\n│   ├── Werk/\n│   └── Archief/\n")
+                    elif cat == "Videos":
+                        f.write("│   ├── Persoonlijk/\n│   └── Werk/\n")
+
+            # Overige categorie
+            if "Other" in self.categories:
+                f.write(f"└── Other/ ({len(self.categories['Other'])} bestanden)\n")
+
+            f.write("```\n\n")
+
+            # 2. Duplicaten aanpak
+            f.write("## 2. DUPLICATEN OPRUIMEN\n\n")
+            if self.exact_duplicates:
+                f.write(
+                    f"Er zijn {len(self.exact_duplicates)} sets exacte duplicaten gevonden.\n")
+                f.write(
+                    f"- Potentiële ruimtebesparing: {self._bytes_to_readable(sum(d['size'] * (d['count'] - 1) for d in self.exact_duplicates))}\n")
+                f.write("- Zie exact_duplicates.csv voor details\n\n")
+
+            # 3. Oude bestanden
+            f.write("## 3. OUDE BESTANDEN BEOORDELEN\n\n")
+            if self.old_files:
+                f.write(f"Er zijn {len(self.old_files)} bestanden ouder dan 1 jaar.\n")
+                f.write("- Overweeg om deze te archiveren of te verwijderen\n")
+                f.write("- Zie old_files.csv voor details\n\n")
+
+            # 4. Ongebruikte bestanden
+            f.write("## 4. ONGEBRUIKTE BESTANDEN\n\n")
+            if self.unused_files:
+                f.write(
+                    f"Er zijn {len(self.unused_files)} potentieel ongebruikte bestanden.\n")
+                f.write(
+                    "- Beoordeel deze bestanden om te bepalen of ze bewaard moeten worden\n")
+                f.write("- Zie unused_files.csv voor details\n\n")
+
+            # 5. Stapsgewijs plan
+            f.write("## 5. STAPSGEWIJS OPRUIMPLAN\n\n")
+            f.write("1. Begin met het verwijderen van duidelijke duplicaten\n")
+            f.write("2. Creëer de hoofdcategorieën als ze nog niet bestaan\n")
+            f.write("3. Verplaats bestanden systematisch naar de juiste categorieën\n")
+            f.write(
+                "4. Organiseer bestanden binnen categorieën in logische submappen\n")
+            f.write(
+                "5. Beoordeel oude en ongebruikte bestanden voor archivering of verwijdering\n")
+
+        print(f"Reorganisatieplan opgeslagen in {REORG_PLAN_OUTPUT}")
 
     def generate_suggestions(self) -> None:
         """Genereer suggesties voor verbetering van de Drive structuur"""
@@ -283,7 +676,7 @@ class DriveAnalyzer:
                 f"Er zijn {len(empty_folders)} lege mappen. Overweeg deze te verwijderen of te "
                 "gebruiken voor organisatie van losse bestanden.")
 
-        # 3. Overbevolkte mappen (te veel directe bestanden)
+        # 3. Overbevolkte mappen
         crowded_threshold = 100
         crowded_folders = []
 
@@ -310,8 +703,23 @@ class DriveAnalyzer:
                 f"Er zijn {len(self.potential_duplicates)} unieke bestandsnamen met potentiële duplicaten "
                 f"({dupe_count} bestanden totaal). Zie {DUPLICATE_OUTPUT} voor details.")
 
-        # 5. Inconsistente naamgeving
-        # Vind prefixen en suffixen in mapnamen voor consistentie-check
+        # 5. Exacte duplicaten
+        if hasattr(self, 'exact_duplicates') and self.exact_duplicates:
+            dupes_size = sum(
+                d['size'] * (d['count'] - 1) for d in self.exact_duplicates)
+            suggestions.append(
+                f"Er zijn {len(self.exact_duplicates)} sets exacte duplicaten gevonden. "
+                f"Verwijderen bespaart {self._bytes_to_readable(dupes_size)}. "
+                f"Zie {EXACT_DUPES_OUTPUT} voor details.")
+
+        # 6. Oude bestanden
+        if hasattr(self, 'old_files') and self.old_files:
+            suggestions.append(
+                f"Er zijn {len(self.old_files)} bestanden ouder dan 1 jaar gevonden. "
+                f"Overweeg deze te archiveren of te verwijderen. "
+                f"Zie {OLD_FILES_OUTPUT} voor details.")
+
+        # 7. Inconsistente naamgeving
         folder_names = [f['name'] for f in self.folders]
         prefixes = defaultdict(int)
         for name in folder_names:
@@ -345,13 +753,6 @@ class DriveAnalyzer:
 
         print(f"Verbeteringsuggesties opgeslagen in {SUGGESTIONS_OUTPUT}")
 
-        # Print een aantal suggesties
-        if suggestions:
-            print("\nTop suggesties voor verbetering:")
-            for suggestion in suggestions[:3]:
-                print(f"- {suggestion}")
-            print(f"Zie {SUGGESTIONS_OUTPUT} voor alle suggesties.")
-
     def create_visualization(self) -> None:
         """Maak een HTML-visualisatie van de mapstructuur"""
         if not self.loaded:
@@ -359,9 +760,23 @@ class DriveAnalyzer:
 
         print("HTML-visualisatie genereren...")
 
-        # Eenvoudige HTML template voor een opvouwbare mapstructuur
-        html_template = """
-        <!DOCTYPE html>
+        # Bereken max_depth correct
+        max_depth = 0
+        for folder in self.folders:
+            path = self.get_folder_path(folder['id'])
+            depth = path.count('/')
+            max_depth = max(max_depth, depth)
+
+        # Statistieken voor visualisatie
+        stats = {'total_files': len(self.files) - len(self.folders),
+                 'total_folders': len(self.folders),
+                 'total_size': self._bytes_to_readable(
+                     sum(int(f.get('size', 0)) for f in self.files if 'size' in f)),
+                 'max_depth': max_depth  # Correcte waarde gebruiken
+                 }
+
+        # HTML template (verkort voor leesbaarheid)
+        html_template = """<!DOCTYPE html>
         <html>
         <head>
             <meta charset="UTF-8">
@@ -407,6 +822,7 @@ class DriveAnalyzer:
             </div>
 
             <script>
+                // JavaScript functies voor uitklappen, zoeken, etc. hier
                 document.addEventListener('DOMContentLoaded', function() {
                     var toggler = document.getElementsByClassName("caret");
                     for (var i = 0; i < toggler.length; i++) {
@@ -416,7 +832,6 @@ class DriveAnalyzer:
                         });
                     }
 
-                    // Zoekfunctionaliteit
                     document.getElementById('searchInput').addEventListener('input', function() {
                         var filter = this.value.toLowerCase();
                         search(filter);
@@ -425,21 +840,17 @@ class DriveAnalyzer:
 
                 function search(filter) {
                     var elements = document.querySelectorAll('.tree li');
-
                     if (filter === '') {
-                        // Als geen zoekterm, alles inzichtelijk maken
                         for (var i = 0; i < elements.length; i++) {
                             elements[i].style.display = '';
                         }
                         return;
                     }
 
-                    // Verberg alles eerst
                     for (var i = 0; i < elements.length; i++) {
                         elements[i].style.display = 'none';
                     }
 
-                    // Toon items die matchen met de zoekterm en hun ouders
                     var matches = document.querySelectorAll('.tree li[data-name*="' + filter + '"]');
                     for (var i = 0; i < matches.length; i++) {
                         showParents(matches[i]);
@@ -476,11 +887,9 @@ class DriveAnalyzer:
                 function expandAll() {
                     var nested = document.querySelectorAll('.nested');
                     var carets = document.querySelectorAll('.caret');
-
                     for (var i = 0; i < nested.length; i++) {
                         nested[i].classList.add('active');
                     }
-
                     for (var i = 0; i < carets.length; i++) {
                         carets[i].classList.add('caret-down');
                     }
@@ -489,26 +898,16 @@ class DriveAnalyzer:
                 function collapseAll() {
                     var nested = document.querySelectorAll('.nested');
                     var carets = document.querySelectorAll('.caret');
-
                     for (var i = 0; i < nested.length; i++) {
                         nested[i].classList.remove('active');
                     }
-
                     for (var i = 0; i < carets.length; i++) {
                         carets[i].classList.remove('caret-down');
                     }
                 }
             </script>
         </body>
-        </html>
-        """
-
-        # Laad statistieken als die bestaan
-        stats = {'total_files': len(self.files) - len(self.folders),
-            'total_folders': len(self.folders), 'total_size': self._bytes_to_readable(
-                sum(int(f.get('size', 0)) for f in self.files if 'size' in f)),
-            'max_depth': 0  # Dit wordt later berekend
-        }
+        </html>"""
 
         # Recursieve functie om mappenstructuur als HTML te genereren
         def generate_folder_html(folder_id):
@@ -587,18 +986,26 @@ class DriveAnalyzer:
         self.load_data()
         self.analyze_structure()
         self.find_potential_duplicates()
+        self.find_exact_duplicates()
+        self.categorize_files()
+        self.find_old_files()
+        self.find_unused_files()
         self.generate_statistics()
         self.generate_suggestions()
+        self.generate_reorganization_plan()
         self.create_visualization()
 
         print("\nAnalyse voltooid! De volgende bestanden zijn gegenereerd:")
         print(f"1. Mapstructuur: {STRUCTURE_OUTPUT}")
-        print(f"2. Potentiële duplicaten: {DUPLICATE_OUTPUT}")
-        print(f"3. Statistieken: {STATS_OUTPUT}")
-        print(f"4. Verbeteringsuggesties: {SUGGESTIONS_OUTPUT}")
-        print(f"5. HTML-visualisatie: {VISUALIZATION_OUTPUT}")
-        print(
-            "\nBekijk de HTML-visualisatie in je browser voor een interactief overzicht.")
+        print(f"2. Statistieken: {STATS_OUTPUT}")
+        print(f"3. Categorieën: {CATEGORIES_OUTPUT}")
+        print(f"4. Potentiële duplicaten: {DUPLICATE_OUTPUT}")
+        print(f"5. Exacte duplicaten: {EXACT_DUPES_OUTPUT}")
+        print(f"6. Oude bestanden: {OLD_FILES_OUTPUT}")
+        print(f"7. Ongebruikte bestanden: {UNUSED_FILES_OUTPUT}")
+        print(f"8. Verbeteringsuggesties: {SUGGESTIONS_OUTPUT}")
+        print(f"9. Reorganisatieplan: {REORG_PLAN_OUTPUT}")
+        print(f"10. HTML-visualisatie: {VISUALIZATION_OUTPUT}")
 
 
 def main():
