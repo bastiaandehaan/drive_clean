@@ -469,6 +469,9 @@ class DriveAnalyzer:
                 "4. Organiseer bestanden binnen categorieën in logische submappen\n")
             f.write(
                 "5. Beoordeel oude en ongebruikte bestanden voor archivering of verwijdering\n")
+
+        print(f"Reorganisatieplan opgeslagen in {REORG_PLAN_OUTPUT}")
+
     def categorize_files(self) -> None:
         """Categoriseer bestanden op basis van type, extensie en naam"""
         if not self.loaded:
@@ -572,83 +575,6 @@ class DriveAnalyzer:
         print(f"- Totaal mappen: {stats['total_folders']}")
         print(f"- Totale grootte: {stats['total_size_readable']}")
         print(f"- Maximale mapdiepte: {stats['max_folder_depth']}")
-
-    def generate_reorganization_plan(self) -> None:
-        """Genereer een reorganisatieplan op basis van de analyse"""
-        if not hasattr(self, 'categories') or not self.categories:
-            self.categorize_files()
-
-        print("Reorganisatieplan genereren...")
-
-        with open(REORG_PLAN_OUTPUT, 'w', encoding='utf-8') as f:
-            f.write(
-                f"Google Drive Reorganisatie Plan - Gegenereerd op {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-
-            # 1. Hoofdstructuur
-            f.write("## 1. VOORGESTELDE MAPSTRUCTUUR\n\n")
-            f.write("```\n")
-            f.write("Drive Root/\n")
-
-            # Voorgestelde hoofdcategorieën
-            main_categories = ['Documents', 'Photos', 'Videos', 'Spreadsheets',
-                               'Presentations', 'Music', 'Archives', 'Code']
-            for cat in main_categories:
-                if cat in self.categories and len(self.categories[cat]) > 0:
-                    file_count = len(self.categories[cat])
-                    f.write(f"├── {cat}/ ({file_count} bestanden)\n")
-
-                    # Suggesties voor submappen, afhankelijk van de categorie
-                    if cat == "Photos":
-                        f.write(
-                            "│   ├── Persoonlijk/\n│   ├── Werk/\n│   └── Evenementen/\n")
-                    elif cat == "Documents":
-                        f.write(
-                            "│   ├── Persoonlijk/\n│   ├── Werk/\n│   └── Archief/\n")
-                    elif cat == "Videos":
-                        f.write("│   ├── Persoonlijk/\n│   └── Werk/\n")
-
-            # Overige categorie
-            if "Other" in self.categories:
-                f.write(f"└── Other/ ({len(self.categories['Other'])} bestanden)\n")
-
-            f.write("```\n\n")
-
-            # 2. Duplicaten aanpak
-            f.write("## 2. DUPLICATEN OPRUIMEN\n\n")
-            if self.exact_duplicates:
-                f.write(
-                    f"Er zijn {len(self.exact_duplicates)} sets exacte duplicaten gevonden.\n")
-                f.write(
-                    f"- Potentiële ruimtebesparing: {self._bytes_to_readable(sum(d['size'] * (d['count'] - 1) for d in self.exact_duplicates))}\n")
-                f.write("- Zie exact_duplicates.csv voor details\n\n")
-
-            # 3. Oude bestanden
-            f.write("## 3. OUDE BESTANDEN BEOORDELEN\n\n")
-            if self.old_files:
-                f.write(f"Er zijn {len(self.old_files)} bestanden ouder dan 1 jaar.\n")
-                f.write("- Overweeg om deze te archiveren of te verwijderen\n")
-                f.write("- Zie old_files.csv voor details\n\n")
-
-            # 4. Ongebruikte bestanden
-            f.write("## 4. ONGEBRUIKTE BESTANDEN\n\n")
-            if self.unused_files:
-                f.write(
-                    f"Er zijn {len(self.unused_files)} potentieel ongebruikte bestanden.\n")
-                f.write(
-                    "- Beoordeel deze bestanden om te bepalen of ze bewaard moeten worden\n")
-                f.write("- Zie unused_files.csv voor details\n\n")
-
-            # 5. Stapsgewijs plan
-            f.write("## 5. STAPSGEWIJS OPRUIMPLAN\n\n")
-            f.write("1. Begin met het verwijderen van duidelijke duplicaten\n")
-            f.write("2. Creëer de hoofdcategorieën als ze nog niet bestaan\n")
-            f.write("3. Verplaats bestanden systematisch naar de juiste categorieën\n")
-            f.write(
-                "4. Organiseer bestanden binnen categorieën in logische submappen\n")
-            f.write(
-                "5. Beoordeel oude en ongebruikte bestanden voor archivering of verwijdering\n")
-
-        print(f"Reorganisatieplan opgeslagen in {REORG_PLAN_OUTPUT}")
 
     def generate_suggestions(self) -> None:
         """Genereer suggesties voor verbetering van de Drive structuur"""
